@@ -16,7 +16,7 @@
 
 ## 安装与使用
 
-1. [点击安装](https://github.com/TnZzZHlp/selectIntelligence/raw/refs/heads/main/selectIntelligence.user.js)。
+1. [点击安装](https://raw.githubusercontent.com/TnZzZHlp/selectIntelligence/refs/heads/main/selectIntelligence.user.js)。
 2. 确保 Tampermonkey 扩展已启用该脚本。
 3. 打开任意网页，点击页面左上角的小机器人按钮（🤖）打开设置面板。
 4. 输入并保存：
