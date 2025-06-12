@@ -8,7 +8,6 @@
 - 可配置 API Key、Endpoint、Model、System Prompt 等参数
 - 拖拽式展开/收起设置面板和触发按钮
 - 支持 OpenAI 格式的 SSE 流式输出，实时渲染返回内容
-- 自定义样式，隐藏原生滚动条并保持滚动体验
 
 ## 前提条件
 
@@ -17,7 +16,7 @@
 
 ## 安装与使用
 
-1. [安装链接](https://www.tampermonkey.net/)。
+1. [点击安装](https://github.com/TnZzZHlp/selectIntelligence/raw/refs/heads/main/selectIntelligence.user.js)。
 2. 确保 Tampermonkey 扩展已启用该脚本。
 3. 打开任意网页，点击页面左上角的小机器人按钮（🤖）打开设置面板。
 4. 输入并保存：
