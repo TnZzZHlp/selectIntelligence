@@ -21,7 +21,7 @@
     settingPanel.id = "select-intel-panel";
     settingPanel.innerHTML = `
         <h3>Select Intelligence 设置</h3>
-        <label>API Key:<br><input type="text" id="si-api-key" style="width: 100%;"></label><br>
+        <label>API Key:<br><input type="password" id="si-api-key" style="width: 100%;"></label><br>
         <label>Model:<br><input type="text" id="si-model" style="width: 100%;"></label><br>
         <label>Endpoint:<br><input type="text" id="si-endpoint" style="width: 100%;"></label><br>
         <label>System Prompt:<br><textarea id="si-system-prompt" style="width: 100%; height: 60px;"></textarea></label><br>
