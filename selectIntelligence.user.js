@@ -464,7 +464,8 @@
         // 如果设置面板显示且点击的不是设置面板内元素，则隐藏设置面板
         if (
             settingPanel.style.display === "block" &&
-            !settingPanel.contains(e.target)
+            !settingPanel.contains(e.target) &&
+            e.target !== toggleBtn
         ) {
             settingPanel.style.display = "none";
         }
