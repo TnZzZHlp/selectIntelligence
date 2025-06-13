@@ -14,10 +14,11 @@
 (function () {
     ("use strict");
 
+    let currentTask = null;
+
     // 创建设置面板
     const settingPanel = document.createElement("div");
     settingPanel.id = "select-intel-panel";
-    settingPanel.style.display = "none";
     settingPanel.innerHTML = `
         <h3>Select Intelligence 设置</h3>
         <label>API Key:<br><input type="text" id="si-api-key" style="width: 100%;"></label><br>
@@ -26,6 +27,7 @@
         <label>System Prompt:<br><textarea id="si-system-prompt" style="width: 100%; height: 60px;"></textarea></label><br>
         <button id="si-save-btn">保存</button>
     `;
+    settingPanel.style.display = "none"; // 默认隐藏
     document.body.appendChild(settingPanel);
 
     // 创建折叠/展开图标按钮
@@ -43,7 +45,7 @@
     // 创建输出面板
     const outputPanel = document.createElement("div");
     outputPanel.id = "si-output-panel";
-    outputPanel.innerHTML = `<p></p>`;
+    outputPanel.innerHTML = `<div></div>`;
     outputPanel.style.display = "none"; // 默认隐藏
     document.body.appendChild(outputPanel);
 
@@ -144,7 +146,7 @@
             top: 0;
             left: 0;
             background-color: white;
-            width: 25vw;
+            width: 600px;
             height: auto;       /* 高度随内容撑开 */
             max-height: 50vh;   /* 最大不超过 30vh */
             z-index: 1000;
@@ -155,16 +157,17 @@
             scrollbar-width: none;     /* Firefox */
         }
 
-        #si-output-panel p {
+        #si-output-panel div {
+            color: black;
             margin: 0;
-            padding: 10px;
             white-space: pre-wrap;
             word-break: break-all;
             overflow-wrap: break-word;
             font-size: 16px;
+            padding: 10px 13px;
         }
 
-        #si-output-panel::-webkit-scrollbar {
+        #si-output-panel div::-webkit-scrollbar {
             display: none;
         }
     `);
@@ -212,7 +215,7 @@
     let dragging = false;
     let startX, startY;
 
-    // 阻止默认的选中行为
+    // 阻止图标默认的选中行为
     toggleBtn.addEventListener("selectstart", (e) => {
         e.preventDefault();
     });
@@ -304,7 +307,13 @@
     });
 
     // 监听选中行为
-    document.addEventListener("selectionchange", async (e) => {
+    document.addEventListener("selectionchange", async () => {
+        // 如果有正在进行的请求，取消它
+        if (currentTask) {
+            currentTask.abort();
+            currentTask = null;
+        }
+
         // 移动小圆点指示器位置到选中文本的右上角
         const selection = document.getSelection();
         if (selection.rangeCount > 0 && selection.toString().trim() !== "") {
@@ -321,7 +330,6 @@
     });
 
     // 监听小圆点移入事件
-    let currentTask = null;
     indicator.addEventListener("mouseenter", () => {
         // 如果有正在进行的请求，取消它
         if (currentTask) {
@@ -332,7 +340,6 @@
         // 隐藏小圆点
         indicator.style.display = "none";
 
-        // 显示信息面板
         // 设置面板位置
         const selection = document.getSelection();
         if (selection.rangeCount > 0 && selection.toString().trim() !== "") {
@@ -340,21 +347,23 @@
             const rect = range.getBoundingClientRect();
 
             // 判断上下左右是否有足够空间
-            if (rect.left + outputPanel.offsetWidth + 10 < window.innerWidth) {
-                outputPanel.style.left = `${rect.left + rect.width + 10}px`;
-            } else {
-                outputPanel.style.left = `${
-                    rect.left - outputPanel.offsetWidth - 10
-                }px`;
-            }
+            // 获取离屏幕边缘最近的距离
+            const spaceRight =
+                window.innerWidth - (rect.left + rect.width + 10);
+            const spaceLeft = rect.left - 10;
 
-            if (rect.top + outputPanel.offsetHeight + 10 < window.innerHeight) {
+            //谁大就往哪边放
+            if (spaceRight > spaceLeft) {
+                outputPanel.style.left = `${rect.left + rect.width + 10}px`;
                 outputPanel.style.top = `${rect.top}px`;
             } else {
-                outputPanel.style.top = `${
-                    rect.top - outputPanel.offsetHeight - 10
-                }px`;
+                outputPanel.style.left = `${rect.left - 10 - 600}px`;
+                outputPanel.style.top = `${rect.top}px`;
             }
+
+            // 设置输出面板最大高度
+            const maxHeight = window.innerHeight - rect.top;
+            outputPanel.style.maxHeight = `${maxHeight}px`;
 
             outputPanel.style.display = "block";
         }
@@ -365,12 +374,17 @@
             !GM_getValue("endpoint", "") ||
             !GM_getValue("model", "")
         ) {
-            outputPanel.querySelector("p").textContent = "请检查设置";
+            outputPanel.querySelector("div").textContent = "请检查设置";
             return;
         }
 
+        function setOutputPanel(content) {
+            outputPanel.querySelector("div").textContent = content;
+            outputPanel.scrollTop = outputPanel.scrollHeight;
+        }
+
         // 发送请求到 AI 接口
-        outputPanel.querySelector("p").textContent = "";
+        setOutputPanel("");
         currentTask = GM_xmlhttpRequest({
             method: "POST",
             url: GM_getValue("endpoint", ""),
@@ -394,7 +408,7 @@
             }),
             responseType: "stream",
             onerror: (err) => {
-                outputPanel.querySelector("p").textContent = "请求失败：" + err;
+                setOutputPanel("请求失败：" + err);
             },
             onloadstart: (stream) => {
                 // 解析原始 ReadableStream
@@ -405,8 +419,7 @@
                 function pump() {
                     reader.read().then(({ done, value }) => {
                         if (done) {
-                            outputPanel.querySelector("p").textContent = result;
-                            return;
+                            setOutputPanel(result);
                         }
                         sseBuffer += decoder.decode(value, { stream: true });
                         const lines = sseBuffer.split("\n");
@@ -415,21 +428,16 @@
                             if (!line.trim().startsWith("data:")) continue;
                             const data = line.slice(5).trim();
                             if (data === "[DONE]") {
-                                outputPanel.querySelector("p").textContent =
-                                    result;
+                                setOutputPanel(result);
                                 return;
                             }
                             try {
                                 const parsed = JSON.parse(data);
                                 const delta =
                                     parsed.choices?.[0]?.delta?.content;
-                                console.log("SSE 数据：", parsed);
                                 if (delta) {
                                     result += delta;
-                                    outputPanel.querySelector("p").textContent =
-                                        result;
-                                    outputPanel.scrollTop =
-                                        outputPanel.scrollHeight;
+                                    setOutputPanel(result);
                                 }
                             } catch (e) {
                                 console.error("解析 SSE 数据失败：", e);
@@ -445,19 +453,31 @@
 
     // 点击其他地方隐藏面板
     document.addEventListener("click", (e) => {
-        if (outputPanel.style.display === "block") {
+        // 如果输出面板显示且点击的不是输出面板内元素，则隐藏输出面板
+        if (
+            outputPanel.style.display === "block" &&
+            !outputPanel.contains(e.target)
+        ) {
             outputPanel.style.display = "none";
         }
 
-        // 如果设置面板显示且点击的不是折叠按钮或设置面板内元素，则隐藏设置面板
+        // 如果设置面板显示且点击的不是设置面板内元素，则隐藏设置面板
         if (
             settingPanel.style.display === "block" &&
-            e.target !== toggleBtn &&
             !settingPanel.contains(e.target)
         ) {
             settingPanel.style.display = "none";
         }
     });
+
+    // 页面滚动隐藏输出面板
+    document.addEventListener(
+        "scroll",
+        () => {
+            outputPanel.style.display = "none";
+        },
+        { passive: true }
+    );
 
     // 初始化
     loadSettings();
