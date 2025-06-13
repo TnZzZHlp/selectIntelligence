@@ -18,7 +18,6 @@
 
     const ttPolicy = window.trustedTypes?.createPolicy("selectIntel", {
         createHTML: (s) => s,
-        createScriptURL: (s) => s,
     });
 
     // 创建设置面板
