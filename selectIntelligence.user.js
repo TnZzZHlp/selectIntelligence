@@ -16,17 +16,22 @@
 
     let currentTask = null;
 
+    const ttPolicy = window.trustedTypes?.createPolicy("selectIntel", {
+        createHTML: (s) => s,
+        createScriptURL: (s) => s,
+    });
+
     // 创建设置面板
     const settingPanel = document.createElement("div");
     settingPanel.id = "select-intel-panel";
-    settingPanel.innerHTML = `
+    settingPanel.innerHTML = ttPolicy.createHTML(`
         <h3>Select Intelligence 设置</h3>
         <label>API Key:<br><input type="password" id="si-api-key" style="width: 100%;"></label><br>
         <label>Model:<br><input type="text" id="si-model" style="width: 100%;"></label><br>
         <label>Endpoint:<br><input type="text" id="si-endpoint" style="width: 100%;"></label><br>
         <label>System Prompt:<br><textarea id="si-system-prompt" style="width: 100%; height: 60px;"></textarea></label><br>
         <button id="si-save-btn">保存</button>
-    `;
+    `);
     settingPanel.style.display = "none"; // 默认隐藏
     document.body.appendChild(settingPanel);
 
@@ -45,7 +50,7 @@
     // 创建输出面板
     const outputPanel = document.createElement("div");
     outputPanel.id = "si-output-panel";
-    outputPanel.innerHTML = `<div></div>`;
+    outputPanel.innerHTML = ttPolicy.createHTML(`<div></div>`);
     outputPanel.style.display = "none"; // 默认隐藏
     document.body.appendChild(outputPanel);
 
